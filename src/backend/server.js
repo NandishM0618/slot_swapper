@@ -9,6 +9,7 @@ const connectDB = require('./config/db')
 const app = express()
 
 const userRoutes = require('./routes/user')
+const eventRoutes = require('./routes/event')
 
 dotenv.config()
 
@@ -23,5 +24,6 @@ app.get('/', (req, res) => {
 })
 
 app.use("/api/users", userRoutes);
+app.use("/api/events", eventRoutes)
 
 app.listen(8080, () => console.log("Listening on port 8080"));
