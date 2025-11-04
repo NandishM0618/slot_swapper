@@ -1,27 +1,26 @@
 "use client";
 import { useState } from "react";
-import apiClient from "../../services/apiService";
+import { useDispatch, useSelector } from "react-redux";
+import { signup } from '../store/reducers/authSlice'
+import { useRouter } from "next/navigation";
 
 export default function page(params) {
     const [name, setName] = useState("")
     const [password, setPassword] = useState("")
     const [email, setEmail] = useState("")
 
-    const api = new apiClient()
+    const dispatch = useDispatch();
+    const router = useRouter();
+
+    const { status, error } = useSelector((state) => state.auth);
 
     async function handleSignup(e) {
         e.preventDefault()
 
-        const formData = new FormData()
-        formData.append("name", name)
-        formData.append("email", email)
-        formData.append("password", password)
-
         try {
-            const res = await api.post("users/register", formData);
+            await dispatch(signup({ name, email, password })).unwrap();
             alert("Account Created!!");
-            window.location.href = "/login";
-            console.log(res.data)
+            router.push("/login")
         } catch (err) {
             console.error(err);
             alert("Account Creation Failed")
@@ -34,7 +33,7 @@ export default function page(params) {
                     <h2 className="text-3xl font-bold text-center text-black mb-6">
                         Create Account
                     </h2>
-
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
                     <form className="space-y-5" onSubmit={handleSignup}>
                         <div>
                             <label
@@ -94,7 +93,7 @@ export default function page(params) {
                             type="submit"
                             className="w-full cursor-pointer bg-black text-white py-2 rounded-lg font-semibold hover:bg-gray-800 hover:text-white transition"
                         >
-                            Sign Up
+                            {status === "loading" ? "hold on..." : "Sign up"}
                         </button>
                     </form>
 

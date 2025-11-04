@@ -1,34 +1,29 @@
 'use client'
 import { useState } from "react";
-import apiClient from "../../services/apiService";
+import { useDispatch, useSelector } from 'react-redux'
+import { login } from "../store/reducers/authSlice";
+import { useRouter } from "next/navigation";
 
-export default function page(params) {
+export default function page() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
 
-    const api = new apiClient();
+    const dispatch = useDispatch();
+    const router = useRouter();
+
+    const { status, user, error } = useSelector((state) => state.auth);
 
     async function handleLogin(e) {
         e.preventDefault();
         try {
-            const data = {
-                email: email,
-                password: password
-            }
-            const res = await api.post("users/login", data);
-            if (res.token) {
-                localStorage.setItem("token", res.token);
-                localStorage.setItem("user", JSON.stringify(res.user));
-                alert("✅ Login Successful");
-                window.location.href = "/";
-            } else {
-                alert(res.message || "Login failed");
-            }
+            await dispatch(login({ email, password })).unwrap();
+            router.push("/");
         } catch (err) {
             console.error(err)
             alert("Login Failed")
         }
     }
+
     return (
         <>
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -36,7 +31,7 @@ export default function page(params) {
                     <h2 className="text-3xl font-bold text-center text-black mb-6">
                         Login
                     </h2>
-
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
                     <form className="space-y-5" onSubmit={handleLogin}>
                         <div>
                             <label
@@ -88,7 +83,7 @@ export default function page(params) {
                             type="submit"
                             className="w-full cursor-pointer bg-black text-white py-2 rounded-lg font-semibold hover:bg-gray-800 hover:text-white transition"
                         >
-                            Sign In
+                            {status === "loading" ? "Logging in..." : "Login"}
                         </button>
                     </form>
 
