@@ -2,7 +2,7 @@ const Event = require('../models/event')
 
 async function getEvents(req, res) {
     try {
-        const events = await Event.find({ owner: req.user._id })
+        const events = await Event.find()
             .populate("owner", "name email")
             .sort({ startTime: 1 });
 
