@@ -1,16 +1,36 @@
+'use client'
+import { useEffect, useState } from "react";
+
 export default function Sidebar() {
+    const [user, setUser] = useState(null);
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    function fetchUser() {
+        try {
+            const storedUser = localStorage.getItem("user")
+            if (storedUser) {
+                setUser(JSON.parse(storedUser))
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        fetchUser();
+    }, [])
+
     return (
         <aside className="w-80 bg-white border-r min-h-screen p-4 flex flex-col gap-4">
 
             <div className="flex items-center gap-3 p-3 rounded-md bg-gray-50">
                 <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                    {/* {user?.name ? user.name[0].toUpperCase() : "U"} */}
-                    john
+                    {user?.name ? user.name[0].toUpperCase() : "U"}
                 </div>
                 <div>
-                    {/* <div className="font-semibold text-sm">{user?.name || "User"}</div> */}
-                    {/* {showUserInfo && <div className="text-xs text-gray-500">{user?.email || ""}</div>} */}
-                    john@mail.com
+                    <div className="font-semibold text-sm">{user?.name || "User"}</div>
+                    <div className="text-xs text-gray-500">{user?.email || ""}</div>
                 </div>
             </div>
 

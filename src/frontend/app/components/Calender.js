@@ -48,6 +48,7 @@ export default function Calender() {
     const [hoverEvent, setHoverEvent] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedTime, setSelectedTime] = useState(null);
 
     const onEventHover = (event, e) => {
         setMousePos({ x: e.clientX, y: e.clientY });
@@ -58,6 +59,12 @@ export default function Calender() {
 
     const handleDateClick = ({ start }) => {
         setSelectedDate(start);
+    };
+
+    const handleCreateEvent = () => {
+        if (!selectedDate || !selectedTime) return;
+
+        alert(`Creating event on ${selectedDate.toDateString()} at ${selectedTime}`);
     };
 
     return (
@@ -123,17 +130,34 @@ export default function Calender() {
                             {timeSlots.map((time) => (
                                 <button
                                     key={time}
-                                    className="p-2 bg-white text-2xl h-20 border rounded hover:bg-blue-100 transition"
+                                    onClick={() => setSelectedTime(time)}
+                                    className={`p-2 text-2xl h-20 border rounded transition 
+              ${selectedTime === time
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-white hover:bg-blue-100"}`}
                                 >
                                     {time}
                                 </button>
                             ))}
+
+                            {/* Create Event button */}
+                            <button
+                                disabled={!selectedTime}
+                                onClick={handleCreateEvent}
+                                className={`mt-4 w-full py-3 rounded-lg font-semibold text-lg transition 
+            ${selectedTime
+                                        ? "bg-green-600 text-white hover:bg-green-700"
+                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+                            >
+                                Create Event
+                            </button>
                         </div>
                     </>
                 ) : (
                     <p className="text-gray-600">Click on a date to view available slots.</p>
                 )}
             </div>
+
         </div>
     );
 }
