@@ -1,8 +1,10 @@
 'use client'
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { createEvent, getEvents } from "../store/reducers/eventSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 const locales = {
     "en-US": require("date-fns/locale/en-US"),
@@ -16,56 +18,78 @@ const localizer = dateFnsLocalizer({
     locales,
 });
 
-const dummyEvents = [
-    {
-        title: "Team Meeting",
-        start: new Date(2025, 10, 13, 10, 0),
-        end: new Date(2025, 10, 13, 11, 0),
-        user: "User A",
-        swappable: true,
-    },
-    {
-        title: "Focus Block",
-        start: new Date(2025, 10, 15, 14, 0),
-        end: new Date(2025, 10, 15, 15, 0),
-        user: "User B",
-        swappable: false,
-    },
-];
-
-const timeSlots = [
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-];
 
 export default function Calender() {
     const [hoverEvent, setHoverEvent] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [selectedDate, setSelectedDate] = useState(null);
-    const [selectedTime, setSelectedTime] = useState(null);
+    const [title, setTitle] = useState("");
+    const [startTime, setStartTime] = useState("");
+    const [endTime, setEndTime] = useState("");
+    const [status, setStatus] = useState("BUSY");
+
 
     const onEventHover = (event, e) => {
         setMousePos({ x: e.clientX, y: e.clientY });
         setHoverEvent(event);
     };
 
+    const dispatch = useDispatch()
+
+    const { events = [] } = useSelector(state => state.events);
+    const { user } = useSelector(state => state.auth);
+
+    const formattedEvents = events.map(evt => ({
+        ...evt,
+        start: new Date(evt.startTime),
+        end: new Date(evt.endTime)
+    }));
     const onEventLeave = () => setHoverEvent(null);
 
     const handleDateClick = ({ start }) => {
         setSelectedDate(start);
     };
 
-    const handleCreateEvent = () => {
-        if (!selectedDate || !selectedTime) return;
 
-        alert(`Creating event on ${selectedDate.toDateString()} at ${selectedTime}`);
-    };
+    async function handleCreateEvent(e) {
+        e.preventDefault();
+
+        try {
+            const start = new Date(selectedDate);
+            const [sh, sm] = startTime.split(":");
+            start.setHours(sh, sm);
+
+            const end = new Date(selectedDate);
+            const [eh, em] = endTime.split(":");
+            end.setHours(eh, em);
+
+            if (end <= start) {
+                alert("End time must be greater than start time");
+                return;
+            }
+
+            await dispatch(
+                createEvent({
+                    title,
+                    startTime: start,
+                    endTime: end,
+                    owner: user?.id,
+                    status
+                })
+            ).unwrap();
+
+            alert("Event Created");
+
+            setTitle("");
+            setStartTime("");
+            setEndTime("");
+            setStatus("BUSY");
+            dispatch(getEvents())
+        } catch (err) {
+            console.error(err);
+            alert("Failed to create event");
+        }
+    }
 
     return (
         <div className="flex gap-6 p-7">
@@ -73,7 +97,7 @@ export default function Calender() {
             <div className="relative p-5 w-[60%]">
                 <Calendar
                     localizer={localizer}
-                    events={dummyEvents}
+                    events={formattedEvents}
                     startAccessor="start"
                     endAccessor="end"
                     style={{ height: 800, fontSize: 20, cursor: "pointer" }}
@@ -83,7 +107,7 @@ export default function Calender() {
                     onSelectSlot={handleDateClick}
                     eventPropGetter={(event) => ({
                         style: {
-                            backgroundColor: event.swappable ? "#4ade80" : "#60a5fa",
+                            backgroundColor: event.status === "SWAPPABLE" ? "#4ade80" : "#60a5fa",
                             borderRadius: "10px",
                             padding: "8px",
                             cursor: "pointer",
@@ -106,55 +130,75 @@ export default function Calender() {
                         className="fixed bg-white shadow-lg border rounded-md p-3 text-sm z-50"
                         style={{ top: mousePos.y + 10, left: mousePos.x + 10 }}
                     >
-                        <p><b>User:</b> {hoverEvent.user}</p>
-                        <p><b>Slot:</b> {hoverEvent.title}</p>
+                        <p><b>User:</b> {hoverEvent.owner?.name || "You"}</p>
+                        <p><b>Title:</b> {hoverEvent.title}</p>
                         <p>
-                            {hoverEvent.swappable ? (
+                            {hoverEvent.status === "SWAPPABLE" ? (
                                 <span className="text-green-600 font-bold">Swappable ✅</span>
                             ) : (
-                                <span className="text-red-600 font-bold">Not Swappable ❌</span>
+                                <span className="text-red-600 font-bold">Busy ❌</span>
                             )}
                         </p>
                     </div>
                 )}
+
             </div>
 
             <div className="w-[40%] p-4 rounded-lg bg-gray-50">
                 {selectedDate ? (
-                    <>
+                    <form onSubmit={handleCreateEvent} className="flex flex-col gap-3">
+
                         <h2 className="text-lg font-bold mb-2">
-                            Available Slots – {selectedDate.toDateString()}
+                            Create Event – {selectedDate.toDateString()}
                         </h2>
 
-                        <div className="flex flex-col gap-2 overflow-auto max-h-screen">
-                            {timeSlots.map((time) => (
-                                <button
-                                    key={time}
-                                    onClick={() => setSelectedTime(time)}
-                                    className={`p-2 text-2xl h-20 border rounded transition 
-              ${selectedTime === time
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-white hover:bg-blue-100"}`}
-                                >
-                                    {time}
-                                </button>
-                            ))}
+                        <input
+                            type="text"
+                            placeholder="Event Title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            required
+                            className="p-2 border rounded-lg"
+                        />
 
-                            {/* Create Event button */}
-                            <button
-                                disabled={!selectedTime}
-                                onClick={handleCreateEvent}
-                                className={`mt-4 w-full py-3 rounded-lg font-semibold text-lg transition 
-            ${selectedTime
-                                        ? "bg-green-600 text-white hover:bg-green-700"
-                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
-                            >
-                                Create Event
-                            </button>
-                        </div>
-                    </>
+
+                        <input
+                            type="time"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                            required
+                            className="p-2 border rounded-lg"
+                        />
+
+                        <input
+                            type="time"
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                            required
+                            className="p-2 border rounded-lg"
+                        />
+
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="p-2 border rounded-lg"
+                        >
+                            <option value="BUSY">Busy</option>
+                            <option value="SWAPPABLE">Swappable</option>
+                        </select>
+
+                        <button
+                            type="submit"
+                            disabled={!title || !startTime || !endTime}
+                            className={`mt-2 w-full py-3 rounded-lg font-semibold text-lg transition 
+          ${title && startTime && endTime ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+                        >
+                            Create Event
+                        </button>
+                    </form>
                 ) : (
-                    <p className="text-gray-600">Click on a date to view available slots.</p>
+                    <p className="text-gray-600">Click on a date to create an event.</p>
                 )}
             </div>
 
