@@ -10,6 +10,7 @@ const app = express()
 
 const userRoutes = require('./routes/user')
 const eventRoutes = require('./routes/event')
+const swapRoutes = require('./routes/swap')
 
 dotenv.config()
 
@@ -32,5 +33,6 @@ app.get('/', (req, res) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes)
+app.use("/api", swapRoutes);
 
 app.listen(8080, () => console.log("Listening on port 8080"));

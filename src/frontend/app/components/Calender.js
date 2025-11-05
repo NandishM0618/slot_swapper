@@ -91,6 +91,10 @@ export default function Calender() {
         }
     }
 
+    useEffect(() => {
+        dispatch(getEvents());
+    }, [])
+
     return (
         <div className="flex gap-6 p-7">
 
