@@ -273,18 +273,28 @@ const eventSlice = createSlice({
                 state.error = action.payload;
             })
 
-            .addCase(createSwapRequest.fulfilled, (state) => {
+            .addCase(createSwapRequest.fulfilled, (state, action) => {
                 state.status = "succeeded";
+                if (action.payload?.swapRequest) {
+                    state.swapRequests.unshift(action.payload.swapRequest);
+                }
             })
 
             .addCase(getSwapRequests.fulfilled, (state, action) => {
                 state.swapRequests = action.payload;
             })
             .addCase(respondSwapRequest.fulfilled, (state, action) => {
-                const updatedSwap = action.payload.swap;
-                state.swapRequests = state.swapRequests.filter(
-                    req => req._id !== updatedSwap._id
-                );
+                const { swap, mySlot, theirSlot } = action.payload;
+
+                // Remove the swap request from the list
+                state.swapRequests = state.swapRequests.filter(req => req._id !== swap._id);
+
+                // Update user's events dynamically
+                state.myEvents = state.myEvents.map(ev => {
+                    if (ev._id === mySlot._id) return mySlot;
+                    if (ev._id === theirSlot._id) return theirSlot;
+                    return ev;
+                });
             });
     },
 });

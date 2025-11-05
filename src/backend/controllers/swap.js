@@ -31,7 +31,7 @@ async function getSwapRequests(req, res) {
                 path: "requester",
                 select: "name email",
             })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
 
         res.status(200).json({ success: true, requests });
     } catch (error) {
@@ -74,12 +74,29 @@ async function createSwapRequest(req, res) {
         await mySlot.save();
         await theirSlot.save();
 
-        return res.status(201).json({ message: "Swap request sent", swap });
+
+        const populatedSwap = await SwapRequest.findById(swap._id)
+            .populate({
+                path: "requester",
+                select: "name email",
+            })
+            .populate({
+                path: "mySlot",
+                select: "title startTime endTime status",
+            })
+            .populate({
+                path: "theirSlot",
+                select: "title startTime endTime status",
+            });
+
+        return res.status(201).json({ message: "Swap request sent", swapRequest: populatedSwap });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Server error" });
     }
 }
+
+
 async function createSwapResponse(req, res) {
     try {
         const { accept } = req.body;
@@ -93,8 +110,8 @@ async function createSwapResponse(req, res) {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        const mySlot = await Event.findById(swap.theirSlot);
-        const theirSlot = await Event.findById(swap.mySlot);
+        const mySlot = await Event.findById(swap.theirSlot._id);
+        const theirSlot = await Event.findById(swap.mySlot._id);
 
         if (!accept) {
             swap.status = "REJECTED";
@@ -121,7 +138,7 @@ async function createSwapResponse(req, res) {
         await theirSlot.save();
         await swap.save();
 
-        res.json({ message: "Swap accepted & calendar updated", swap });
+        res.json({ message: "Swap accepted & calendar updated", swap, mySlot, theirSlot });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Server error" });
