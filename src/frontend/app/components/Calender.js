@@ -3,7 +3,7 @@ import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns"
 import { useEffect, useState } from "react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { createEvent, getEvents } from "../store/reducers/eventSlice";
+import { createEvent, createSwapRequest, fetchSwappableSlots, getEvents } from "../store/reducers/eventSlice";
 import { useDispatch, useSelector } from "react-redux";
 
 const locales = {
@@ -27,6 +27,9 @@ export default function Calender() {
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [status, setStatus] = useState("BUSY");
+    const [selectedSwapSlot, setSelectedSwapSlot] = useState(null);
+    const [mySwapSlot, setMySwapSlot] = useState(null);
+    const [showSwapModal, setShowSwapModal] = useState(false);
 
 
     const onEventHover = (event, e) => {
@@ -38,6 +41,7 @@ export default function Calender() {
 
     const { events = [] } = useSelector(state => state.events);
     const { user } = useSelector(state => state.auth);
+    const { swappableSlots = [] } = useSelector(state => state.events);
 
     const formattedEvents = events.map(evt => ({
         ...evt,
@@ -94,6 +98,10 @@ export default function Calender() {
     useEffect(() => {
         dispatch(getEvents());
     }, [])
+
+    useEffect(() => {
+        dispatch(fetchSwappableSlots());
+    }, [dispatch])
 
     return (
         <div className="flex gap-6 p-7">
@@ -205,6 +213,86 @@ export default function Calender() {
                     <p className="text-gray-600">Click on a date to create an event.</p>
                 )}
             </div>
+
+            <div className="mt-6">
+                <h2 className="text-lg font-bold mb-3">Available Swappable Slots</h2>
+
+                {swappableSlots.length === 0 && (
+                    <p className="text-gray-600">No swappable slots available right now.</p>
+                )}
+
+                <div className="space-y-2">
+                    {swappableSlots.map(slot => (
+                        <div
+                            key={slot._id}
+                            onClick={() => {
+                                setSelectedSwapSlot(slot);
+                                setShowSwapModal(true);
+                            }}
+                            className="p-3 bg-blue-100 border border-blue-400 rounded cursor-pointer hover:bg-blue-200"
+                        >
+                            <p><b>{slot.title}</b></p>
+                            <p>{new Date(slot.startTime).toLocaleString()}</p>
+                            <p className="text-sm text-gray-700">
+                                User: {slot.owner?.name}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {showSwapModal && selectedSwapSlot && (
+                <div className="fixed z-50 inset-0 flex justify-center items-center">
+                    <div className="bg-white p-6 rounded-lg w-[400px] shadow-xl">
+
+                        <h2 className="text-lg font-bold mb-3">Swap Request</h2>
+                        <div className="mb-4 p-3 border rounded bg-gray-100">
+                            <p><b>Selected Slot:</b> {selectedSwapSlot.title}</p>
+                            <p>{new Date(selectedSwapSlot.startTime).toLocaleString()}</p>
+                            <p>User: {selectedSwapSlot.owner?.name}</p>
+                        </div>
+
+                        <p className="font-semibold mb-2">Choose Your Swappable Slot:</p>
+
+                        {formattedEvents
+                            .filter(e => e.status === "SWAPPABLE")
+                            .map(e => (
+                                <div
+                                    key={e._id}
+                                    onClick={() => setMySwapSlot(e)}
+                                    className={`p-3 border rounded mb-2 cursor-pointer
+              ${mySwapSlot?._id === e._id ? "bg-green-200 border-green-500" : "bg-white"}`}
+                                >
+                                    <p><b>{e.title}</b></p>
+                                    <p>{e.start.toLocaleString()}</p>
+                                </div>
+                            ))}
+
+                        {mySwapSlot && (
+                            <button
+                                onClick={async () => {
+                                    await dispatch(createSwapRequest({
+                                        mySlotId: mySwapSlot._id,
+                                        theirSlotId: selectedSwapSlot._id
+                                    }));
+                                    alert("Swap Request Sent");
+                                    setShowSwapModal(false);
+                                    setMySwapSlot(null);
+                                }}
+                                className="w-full mt-3 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                            >
+                                Send Swap Request
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => setShowSwapModal(false)}
+                            className="w-full mt-2 bg-gray-300 py-2 rounded"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

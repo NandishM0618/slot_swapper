@@ -1,19 +1,45 @@
 const SwapRequest = require('../models/swaprequest')
 const Event = require('../models/event')
+const mongoose = require('mongoose')
 
 async function getSwapableSlots(req, res) {
     try {
         const slots = await Event.find({
-            owner: { $ne: req.user._id },
+            owner: { $ne: mongoose.Types.ObjectId.createFromHexString(req.user._id.toString()) },
             status: "SWAPPABLE"
         }).populate("owner", "name email");
 
-        res.status(200).json(slots);
+        res.status(200).json({ slots });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Server error" });
     }
 }
+
+async function getSwapRequests(req, res) {
+    try {
+        const requests = await SwapRequest.find({ responder: req.user._id, status: "PENDING" })
+            .populate({
+                path: "mySlot",
+                select: "title startTime endTime status",
+            })
+            .populate({
+                path: "theirSlot",
+                select: "title startTime endTime status",
+            })
+            .populate({
+                path: "requester",
+                select: "name email",
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, requests });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
 
 async function createSwapRequest(req, res) {
     try {
@@ -37,9 +63,10 @@ async function createSwapRequest(req, res) {
 
         const swap = await SwapRequest.create({
             requester: req.user._id,
-            receiver: theirSlot.owner,
+            responder: theirSlot.owner,
             mySlot: mySlotId,
             theirSlot: theirSlotId,
+            status: "PENDING"
         });
 
         mySlot.status = "SWAP_PENDING";
@@ -47,13 +74,12 @@ async function createSwapRequest(req, res) {
         await mySlot.save();
         await theirSlot.save();
 
-        res.status(201).json({ message: "Swap request sent", swap });
+        return res.status(201).json({ message: "Swap request sent", swap });
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: "Server error" });
+        return res.status(500).json({ message: "Server error" });
     }
 }
-
 async function createSwapResponse(req, res) {
     try {
         const { accept } = req.body;
@@ -63,7 +89,7 @@ async function createSwapResponse(req, res) {
             .populate("mySlot")
             .populate("theirSlot");
 
-        if (!swap || swap.receiver.toString() !== req.user._id.toString()) {
+        if (!swap || swap.responder.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Not authorized" });
         }
 
@@ -79,7 +105,7 @@ async function createSwapResponse(req, res) {
             await mySlot.save();
             await theirSlot.save();
 
-            return res.json({ message: "Swap rejected" });
+            return res.json({ message: "Swap rejected", swap });
         }
 
         const tempOwner = mySlot.owner;
@@ -95,7 +121,7 @@ async function createSwapResponse(req, res) {
         await theirSlot.save();
         await swap.save();
 
-        res.json({ message: "Swap accepted & calendar updated" });
+        res.json({ message: "Swap accepted & calendar updated", swap });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Server error" });
@@ -103,5 +129,5 @@ async function createSwapResponse(req, res) {
 }
 
 module.exports = {
-    getSwapableSlots, createSwapRequest, createSwapResponse
+    getSwapableSlots, createSwapRequest, createSwapResponse, getSwapRequests
 }
