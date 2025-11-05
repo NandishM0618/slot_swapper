@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-const API_URL = "http://localhost:8080/api";
+const API_URL = "https://slot-swapper-ww4u.onrender.com/api";
 
 export const createEvent = createAsyncThunk("events/create", async (payload, thunkAPI) => {
     try {

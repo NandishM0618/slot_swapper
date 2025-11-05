@@ -16,7 +16,7 @@ dotenv.config()
 
 app.use(
     cors({
-        origin: "http://localhost:3000",
+        origin: "https://slot-swapper-beryl.vercel.app",
         credentials: true,
     })
 );
