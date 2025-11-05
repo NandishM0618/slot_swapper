@@ -36,47 +36,63 @@ A full-stack calendar and event swapping application where users can create even
 
 ---
 
-### Backend Setup
+## Setup Instructions
 
-1. Navigate to the backend folder:
-
-```bash
-cd backend
-npm install
-```
-
-2. Create a `.env` file:
-
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/slot-swap
-JWT_SECRET=your_jwt_secret
-```
-
-3. Run the server:
+### **1. Clone Repository**
 
 ```bash
-npm run dev
+git clone https://github.com/NandishM0618/slot_swapper.git
+cd slot_swapper
 ```
 
 ---
 
-### Frontend Setup
-
-1. Navigate to the frontend folder:
+### **2. Setup Server (Backend)**
 
 ```bash
-cd frontend
 npm install
 ```
 
-2. Start the React app:
+#### Create `.env` File
+
+```
+PORT=8080
+MONGO_URI=mongodb://localhost:27017/slot-swaper
+```
+
+#### Run Backend
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` in your browser.
+Server runs at:
+[http://localhost:8080](http://localhost:8080)
+
+---
+
+### **3. Setup Frontend (Client)**
+
+```bash
+cd src/frontend
+npm install
+```
+
+#### Create `.env.local`
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+#### Run Frontend
+
+```bash
+npm run dev
+```
+
+App runs at:
+ [http://localhost:3000](http://localhost:3000)
+
 
 ---
 
